@@ -1,4 +1,4 @@
-import * as myParser from './myParser';
+import * as myParser from './SymbolicParserHelper';
 
 let lineCount=1;
 let varMap=[];
@@ -310,10 +310,3 @@ export const subtitution = (code,parsed)=>{
     parseAllCode(parsed,dic,undefined);
     return createFunctionColor(code);
 };
-
-
-
-
-
-
-

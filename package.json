@@ -23,7 +23,9 @@
     "dependencies": {
         "eslint-html-reporter": "^0.5.2",
         "esprima": "^4.0.0",
-        "jquery": "^3.3.1"
+        "flowchart.js": "^1.11.3",
+        "jquery": "^3.3.1",
+        "raphael": "^2.2.7"
     },
     "devDependencies": {
         "cross-env": "^5.2.0",
