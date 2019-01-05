@@ -1,3 +1,3 @@
 import './code-analyzer.test';
-import './symbolic.test';
+import './cfg.test';
 

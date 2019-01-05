@@ -1,18 +1,23 @@
-import * as myParser from './SymbolicParserHelper';
-
 let lineCount=1;
 let varMap=[];
 let linesDic;
 let colorsMap;
+let whileMapColor;
+let whileMapIndex;
 
 const init = ()=>{
     colorsMap=[];
     linesDic=[];
+    whileMapColor=[];
+    whileMapIndex=0;
 };
 
 export const initVarMap = () => varMap=[];
 
 export const getColorsMap= () => colorsMap;
+
+export const getWhileColorsMap= () => whileMapColor;
+
 
 const addToDic= (key,val,dic)=>{
     val=replaceVals(val,dic);
@@ -85,31 +90,31 @@ const saveDicLine = (dic)=>{
 
 export const setLineCount=(l)=>{lineCount=l;};
 
-export const parseGlobalVars= (parsedCode)=>{
-    parsedCode.body.forEach(item=>{
-        switch (item.type) {
-        case 'VariableDeclaration': parseDeclarations(item.declarations); break;
-        case 'ExpressionStatement': insertToMap(myParser.cases(item.expression).Name,myParser.cases(item.expression).Value); break;
-        }
-    });
-};
+// export const parseGlobalVars= (parsedCode)=>{
+//     parsedCode.body.forEach(item=>{
+//         switch (item.type) {
+//         case 'VariableDeclaration': parseDeclarations(item.declarations); break;
+//         case 'ExpressionStatement': insertToMap(myParser.cases(item.expression).Name,myParser.cases(item.expression).Value); break;
+//         }
+//     });
+// };
+//
+// const parseDeclarations = (declarations) =>{
+//     declarations.forEach((decleration)=> {
+//         insertToMap(cases(decleration.id),myParser.cases(decleration.init));
+//     });
+// };
 
-const parseDeclarations = (declarations) =>{
-    declarations.forEach((decleration)=> {
-        insertToMap(cases(decleration.id),myParser.cases(decleration.init));
-    });
-};
-
-const insertToMap = (left,right) =>{
-    const varNum=getVarOrNum(right);
-    for (let i=0;i<varNum.length;i++)
-    {
-        right= varNum[i] in varMap ? right.replace(varNum[i],varMap[varNum[i]]) : right;
-    }
-    if(right===null)
-        right= left in varMap ? varMap[left] : right;
-    varMap[left]=replaceNums(right);
-};
+// const insertToMap = (left,right) =>{
+//     const varNum=getVarOrNum(right);
+//     for (let i=0;i<varNum.length;i++)
+//     {
+//         right= varNum[i] in varMap ? right.replace(varNum[i],varMap[varNum[i]]) : right;
+//     }
+//     if(right===null)
+//         right= left in varMap ? varMap[left] : right;
+//     varMap[left]=replaceNums(right);
+// };
 
 export const parseAllCode = (codeToParse,dic,isIfLast) =>{
     codeToParse.body.forEach(item=>{
@@ -172,6 +177,9 @@ const expState=(item,dic,isIfLast) =>{
 const whileState=(item,dic,isIfLast) =>{
     saveDicLine(dic);
     lineCount++;
+    const whileCond=calPhrase(cases(item.test,dic,isIfLast),dic,isIfLast);
+    whileMapColor[whileMapIndex]=whileCond && isIfLast!==false;
+    whileMapIndex++;
     cases(item.body,dic,isIfLast);
     saveDicLine(dic);
     lineCount++;
@@ -305,7 +313,7 @@ export const subtitution = (code,parsed)=>{
     setLineCount(1);
     init();
     let dic=[];
-    parseGlobalVars(parsed);
+    // parseGlobalVars(parsed);
     dic= copyInitVarMap(dic);
     parseAllCode(parsed,dic,undefined);
     return createFunctionColor(code);

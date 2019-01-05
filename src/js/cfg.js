@@ -9,6 +9,8 @@ let dic={};
 let colors=[];
 let colorsInd=0;
 let myTable=[];
+let whileMapColor=[];
+let whileMapIndex=0;
 
 const init = ()=>{
     dic=[];
@@ -18,14 +20,16 @@ const init = ()=>{
     colorsInd=0;
     nextNode=undefined;
     whileNode=undefined;
-
+    whileMapColor=mySymbolic.getWhileColorsMap();
+    whileMapIndex=0;
 };
 
 export const getCFG = () => draw;
 
 const createCFG = () => {
     const getLine = (line)=>{
-        let ret='';
+        let ret='('+line.index+')\n';
+        line=line.lines;
         line.forEach(content=> ret+=content+'\n');
         return ret; };
     const getColor = (node)=> node.isTrue==true ? 'green' : 'white';
@@ -35,21 +39,18 @@ const createCFG = () => {
         if (node !== undefined) {
             const c = getColor(node);
             if (node.type == 's')
-                retuVal += 'kodkod' + node.index + '=>operation: ' + getLine(node.lines) + '|' + c + '\n';
+                retuVal += 'kodkod' + node.index + '=>operation: ' + getLine(node) + '|' + c + '\n';
             else if (node.type == 'd')
-                retuVal += 'kodkod' + node.index + '=>condition: ' + getLine(node.lines) + '|' + c + '\n';
+                retuVal += 'kodkod' + node.index + '=>condition: ' + getLine(node) + '|' + c + '\n';
             else
-                retuVal += 'kodkod' + node.index + '=>start: continue |' + c + '\n';
-        }}
+                retuVal += 'kodkod' + node.index + '=>start: ('+node.index+')\n |' + c + '\n'; }}
     return addArcs(retuVal);
 };
 
 const addArcs = (operators) =>{
     const addType= (node,name,operators,type)=>{
-        if (node !== undefined) {
-            const caseTrue='kodkod'+node.index;
-            operators+= node.isTrue ? name+'('+type+')->'+caseTrue+'\n' : name+'('+type+',right)->'+caseTrue+'\n';
-        }
+        const caseTrue='kodkod'+node.index;
+        operators+= node.isTrue ? name+'('+type+')->'+caseTrue+'\n' : name+'('+type+',right)->'+caseTrue+'\n';
         return operators;};
     for(let i=0;i<dic.length;i++){
         const node=dic[i];
@@ -88,11 +89,7 @@ const getNodes=(node)=>{
 export const parseAllCode = (parsedCode,current,next,isTrue,theLine) =>{
     if (theLine!=undefined)
         lineCount=theLine;
-    if (parsedCode != null && parsedCode.type != null) {
-        return allCases[parsedCode.type](parsedCode,current,next,isTrue,theLine);
-    }
-    else
-        return null;
+    return allCases[parsedCode.type](parsedCode,current,next,isTrue,theLine);
 };
 
 const prog = (item,current,next,isTrue) => {
@@ -106,7 +103,7 @@ const elseIfState= (item,current,next,isTrue)=>{
     current.isTrue=isTrue;
     current.lines.push(cond);
     current.type='d';
-    const trueIf=isIfTrue();
+    const trueIf=isIfTrue() && isTrue;
     const caseTrue=initNode([],'s',next,current.isTrue);
     current.true=caseTrue;
     const isTrueBefore=trueIf;
@@ -117,7 +114,7 @@ const elseIfState= (item,current,next,isTrue)=>{
 const ifState =(item,current, next,isTrue, type)=>{
     const cond=parseAllCode(item.test,current,next,isTrue);
     myTable.push({Line: lineCount, Type: type, Name:'', Condition: cond, Value:''});
-    const ifTrue=isIfTrue();
+    const ifTrue=isIfTrue() && isTrue;
     const node=initNode([],'d',next,isTrue);
     node.lines.push(cond);
     const theNext=initNode(undefined,'c',next,isTrue);
@@ -142,7 +139,7 @@ const handleAlt = (item,next,ifTrue,isTrue,node,isTrueBefore)=>{
         if (!(item.alternate.type == 'ElseIfStatment')){
             falseNode.type='s';
             falseNode.next=next;
-            ifTrue=isIfTrue();
+            ifTrue=isIfTrue() && isTrue;
             falseNode.isTrue=ifTrue;
         }
         else
@@ -155,7 +152,7 @@ const handleAlt = (item,next,ifTrue,isTrue,node,isTrueBefore)=>{
     }
 };
 
-const getNodeAfterAss= (current, next) =>{
+export const getNodeAfterAss= (current, next) =>{
     let node;
     if (!(current.next!=undefined && current.next.lines!=undefined && current.next.type!='d')) {
         node=initNode([],'s',next,undefined);
@@ -166,7 +163,7 @@ const getNodeAfterAss= (current, next) =>{
     return node;
 };
 
-const assExp=(item,current,next,isTrue) =>{
+export const assExp=(item,current,next,isTrue) =>{
     const left=parseAllCode(item.left,current,next,isTrue);
     const right= parseAllCode(item.right,current,next,isTrue);
     const obj={Line: lineCount,Type: item.type,Name: left ,Condition: '',Value: right};
@@ -186,7 +183,7 @@ const expState=(item,current,next,isTrue) =>{
     parseAllCode(item.expression,current,next,isTrue);
 };
 
-const initNode= (lines,type,next,isTrue)=> {
+export const initNode= (lines,type,next,isTrue)=> {
     const obj={lines: lines, type: type,index:ind, next: next, isTrue:isTrue};
     ind++;
     return obj;
@@ -202,7 +199,9 @@ const whileState=(item,current,next,isTrue) =>{
     next=node;
     const caseTrue=initNode([],'s',next,isTrue);
     node.true=caseTrue;
-    parseAllCode(item.body,caseTrue,next,isTrue);
+    var isWhileTrue=whileMapColor[whileMapIndex] && isTrue;
+    whileMapIndex++;
+    parseAllCode(item.body,caseTrue,next,isWhileTrue);
     whileNode=node;
     lineCount++;
 };
@@ -307,7 +306,7 @@ const allCases={
     'AssignmentExpression':assExp,
     'ArrowFunctionExpression': fundecl,
     'LogicalExpression': binaryExp,
-    'Program' : prog
+    'Program' : prog,
 };
 
 export const start = (code)=>{
